@@ -19,14 +19,14 @@ A comprehensive examples available in the [`examples/`](examples/) directory:
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.10 |
-| <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.63 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.10.7 |
+| <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.64 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.63 |
+| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.64 |
 
 ## Modules
 
@@ -43,6 +43,7 @@ No modules.
 | [scaleway_vpc_private_network.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_private_network) | resource |
 | [scaleway_vpc_public_gateway.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway) | resource |
 | [scaleway_vpc_public_gateway_ip.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway_ip) | resource |
+| [scaleway_account_project.project](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/data-sources/account_project) | data source |
 
 ## Inputs
 
@@ -63,10 +64,11 @@ No modules.
 | <a name="input_gateway_reserve_flexible_ip"></a> [gateway\_reserve\_flexible\_ip](#input\_gateway\_reserve\_flexible\_ip) | Reserve new flexible IP addresses for gateways | `bool` | `true` | no |
 | <a name="input_gateway_type"></a> [gateway\_type](#input\_gateway\_type) | Gateway instance type: VPC-GW-S (small) or VPC-GW-M (medium) | `string` | `"VPC-GW-S"` | no |
 | <a name="input_network_private_networks"></a> [network\_private\_networks](#input\_network\_private\_networks) | Private networks to create with optional names, subnets, and tags | <pre>map(object({<br/>    name        = optional(string)           # Network name (defaults to auto-generated)<br/>    ipv4_subnet = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags        = optional(list(string), []) # Network-specific tags<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "ipv4_subnet": null,<br/>    "ipv6_subnet": null,<br/>    "name": null,<br/>    "tags": []<br/>  }<br/>}</pre> | no |
+| <a name="input_organization_id"></a> [organization\_id](#input\_organization\_id) | Organization ID for VPC resources | `string` | n/a | yes |
+| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name for VPC resources | `string` | n/a | yes |
 | <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | Enable custom route propagation between private networks | `bool` | `true` | no |
 | <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | Enable routing between private networks (cannot be disabled once enabled) | `bool` | `true` | no |
 | <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name prefix for the VPC and associated resources | `string` | n/a | yes |
-| <a name="input_vpc_project_id"></a> [vpc\_project\_id](#input\_vpc\_project\_id) | Project ID for VPC resources (defaults to provider configuration) | `string` | `null` | no |
 | <a name="input_vpc_region"></a> [vpc\_region](#input\_vpc\_region) | Region where VPC resources will be created (defaults to provider configuration) | `string` | `null` | no |
 | <a name="input_vpc_tags"></a> [vpc\_tags](#input\_vpc\_tags) | Tags to apply to all VPC resources | `list(string)` | `[]` | no |
 | <a name="input_vpc_zones"></a> [vpc\_zones](#input\_vpc\_zones) | Availability zones for gateway deployment (must belong to vpc\_region if both specified) | `list(string)` | `[]` | no |
