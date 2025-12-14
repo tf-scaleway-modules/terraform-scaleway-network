@@ -1,93 +1,111 @@
-# Scaleway Network
+# Scaleway Network Terraform Module
 
+[![Apache 2.0][apache-shield]][apache]
+[![Terraform][terraform-badge]][terraform-url]
+[![Scaleway Provider][scaleway-badge]][scaleway-url]
+[![Latest Release][release-badge]][release-url]
 
+A Terraform module for creating and managing **Scaleway** Network infrastructure. This module provisions VPCs, private networks, public gateways with NAT, Access Control Lists for traffic filtering, and optional SSH bastion hosts. It supports multi-zone deployments for high availability and provides flexible network configuration with IPv4/IPv6 support.
 
-## Getting started
+## Usage Examples
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+A comprehensive examples available in the [`examples/`](examples/) directory:
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **[Minimal](examples/minimal/)** - Simplest configuration for quick start
+- **[Complete](examples/complete/)** - Full-featured production setup
 
-## Add your files
+<!-- BEGIN_TF_DOCS -->
+## Requirements
 
-* [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.10 |
+| <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.63 |
 
-```
-cd existing_repo
-git remote add origin https://gitlab.com/leminnov/terraform/modules/scaleway-network.git
-git branch -M main
-git push -uf origin main
-```
+## Providers
 
-## Integrate with your tools
+| Name | Version |
+|------|---------|
+| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.63 |
 
-* [Set up project integrations](https://gitlab.com/leminnov/terraform/modules/scaleway-network/-/settings/integrations)
+## Modules
 
-## Collaborate with your team
+No modules.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Resources
 
-## Test and Deploy
+| Name | Type |
+|------|------|
+| [scaleway_ipam_ip.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/ipam_ip) | resource |
+| [scaleway_vpc.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc) | resource |
+| [scaleway_vpc_acl.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_acl) | resource |
+| [scaleway_vpc_gateway_network.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_gateway_network) | resource |
+| [scaleway_vpc_private_network.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_private_network) | resource |
+| [scaleway_vpc_public_gateway.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway) | resource |
+| [scaleway_vpc_public_gateway_ip.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway_ip) | resource |
 
-Use the built-in continuous integration in GitLab.
+## Inputs
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| <a name="input_access_control_list_default_policy"></a> [access\_control\_list\_default\_policy](#input\_access\_control\_list\_default\_policy) | Default action when no ACL rules match: accept or drop | `string` | `"accept"` | no |
+| <a name="input_access_control_list_is_ipv6"></a> [access\_control\_list\_is\_ipv6](#input\_access\_control\_list\_is\_ipv6) | Apply ACL rules to IPv6 traffic instead of IPv4 | `bool` | `false` | no |
+| <a name="input_access_control_list_rules"></a> [access\_control\_list\_rules](#input\_access\_control\_list\_rules) | ACL rules for traffic filtering (protocol, ports, source/destination, action) | <pre>list(object({<br/>    protocol      = string # Protocol: ANY, TCP, UDP, or ICMP<br/>    src_port_low  = number<br/>    src_port_high = number<br/>    dst_port_low  = number<br/>    dst_port_high = number<br/>    source        = string<br/>    destination   = string<br/>    description   = string<br/>    action        = string<br/>  }))</pre> | <pre>[<br/>  {<br/>    "action": "accept",<br/>    "description": "Allow HTTP traffic from any source",<br/>    "destination": "0.0.0.0/0",<br/>    "dst_port_high": 80,<br/>    "dst_port_low": 80,<br/>    "protocol": "TCP",<br/>    "source": "0.0.0.0/0",<br/>    "src_port_high": 0,<br/>    "src_port_low": 0<br/>  }<br/>]</pre> | no |
+| <a name="input_bastion_allowed_ip_ranges"></a> [bastion\_allowed\_ip\_ranges](#input\_bastion\_allowed\_ip\_ranges) | CIDR ranges allowed to access SSH bastion | `list(string)` | <pre>[<br/>  "0.0.0.0/0"<br/>]</pre> | no |
+| <a name="input_bastion_ssh_port"></a> [bastion\_ssh\_port](#input\_bastion\_ssh\_port) | SSH port for bastion access (1-65535) | `number` | `61000` | no |
+| <a name="input_enable_access_control_list"></a> [enable\_access\_control\_list](#input\_enable\_access\_control\_list) | Create VPC Access Control List for traffic filtering | `bool` | `false` | no |
+| <a name="input_enable_bastion"></a> [enable\_bastion](#input\_enable\_bastion) | Enable SSH bastion on public gateways for secure access | `bool` | `false` | no |
+| <a name="input_enable_gateway"></a> [enable\_gateway](#input\_enable\_gateway) | Create public gateways for internet connectivity | `bool` | `true` | no |
+| <a name="input_gateway_enable_masquerade"></a> [gateway\_enable\_masquerade](#input\_gateway\_enable\_masquerade) | Enable NAT masquerade for outbound internet access | `bool` | `true` | no |
+| <a name="input_gateway_enable_smtp"></a> [gateway\_enable\_smtp](#input\_gateway\_enable\_smtp) | Enable SMTP (port 25) for email delivery | `bool` | `false` | no |
+| <a name="input_gateway_existing_flexible_ip_id"></a> [gateway\_existing\_flexible\_ip\_id](#input\_gateway\_existing\_flexible\_ip\_id) | Existing flexible IP ID to attach (overrides gateway\_reserve\_flexible\_ip) | `string` | `null` | no |
+| <a name="input_gateway_refresh_ssh_keys"></a> [gateway\_refresh\_ssh\_keys](#input\_gateway\_refresh\_ssh\_keys) | Trigger SSH key refresh on gateways (change value to trigger) | `string` | `null` | no |
+| <a name="input_gateway_reserve_flexible_ip"></a> [gateway\_reserve\_flexible\_ip](#input\_gateway\_reserve\_flexible\_ip) | Reserve new flexible IP addresses for gateways | `bool` | `true` | no |
+| <a name="input_gateway_type"></a> [gateway\_type](#input\_gateway\_type) | Gateway instance type: VPC-GW-S (small) or VPC-GW-M (medium) | `string` | `"VPC-GW-S"` | no |
+| <a name="input_network_private_networks"></a> [network\_private\_networks](#input\_network\_private\_networks) | Private networks to create with optional names, subnets, and tags | <pre>map(object({<br/>    name        = optional(string)           # Network name (defaults to auto-generated)<br/>    ipv4_subnet = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags        = optional(list(string), []) # Network-specific tags<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "ipv4_subnet": null,<br/>    "ipv6_subnet": null,<br/>    "name": null,<br/>    "tags": []<br/>  }<br/>}</pre> | no |
+| <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | Enable custom route propagation between private networks | `bool` | `true` | no |
+| <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | Enable routing between private networks (cannot be disabled once enabled) | `bool` | `true` | no |
+| <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name prefix for the VPC and associated resources | `string` | n/a | yes |
+| <a name="input_vpc_project_id"></a> [vpc\_project\_id](#input\_vpc\_project\_id) | Project ID for VPC resources (defaults to provider configuration) | `string` | `null` | no |
+| <a name="input_vpc_region"></a> [vpc\_region](#input\_vpc\_region) | Region where VPC resources will be created (defaults to provider configuration) | `string` | `null` | no |
+| <a name="input_vpc_tags"></a> [vpc\_tags](#input\_vpc\_tags) | Tags to apply to all VPC resources | `list(string)` | `[]` | no |
+| <a name="input_vpc_zones"></a> [vpc\_zones](#input\_vpc\_zones) | Availability zones for gateway deployment (must belong to vpc\_region if both specified) | `list(string)` | `[]` | no |
 
-***
+## Outputs
 
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+| Name | Description |
+|------|-------------|
+| <a name="output_access_control_list_id"></a> [access\_control\_list\_id](#output\_access\_control\_list\_id) | VPC Access Control List ID (null if ACL not created) |
+| <a name="output_gateway_flexible_ip_addresses"></a> [gateway\_flexible\_ip\_addresses](#output\_gateway\_flexible\_ip\_addresses) | Gateway public IP addresses by zone |
+| <a name="output_gateway_flexible_ip_ids"></a> [gateway\_flexible\_ip\_ids](#output\_gateway\_flexible\_ip\_ids) | Gateway flexible IP resource IDs by zone |
+| <a name="output_gateway_ids"></a> [gateway\_ids](#output\_gateway\_ids) | Public gateway IDs by zone |
+| <a name="output_gateway_network_ids"></a> [gateway\_network\_ids](#output\_gateway\_network\_ids) | Gateway network attachment IDs by network-zone pair (e.g., web-fr-par-1) |
+| <a name="output_ipam_ip_addresses"></a> [ipam\_ip\_addresses](#output\_ipam\_ip\_addresses) | IPAM IP addresses by network-zone pair |
+| <a name="output_ipam_ip_ids"></a> [ipam\_ip\_ids](#output\_ipam\_ip\_ids) | IPAM IP resource IDs by network-zone pair |
+| <a name="output_network_ipv4_cidrs"></a> [network\_ipv4\_cidrs](#output\_network\_ipv4\_cidrs) | IPv4 CIDR blocks by network name |
+| <a name="output_network_ipv6_cidrs"></a> [network\_ipv6\_cidrs](#output\_network\_ipv6\_cidrs) | IPv6 CIDR blocks by network name |
+| <a name="output_network_private_network_ids"></a> [network\_private\_network\_ids](#output\_network\_private\_network\_ids) | Private network IDs by network name |
+| <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC resource identifier |
+<!-- END_TF_DOCS -->
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for full details.
+
+Copyright 2025 - This module is independently maintained and not affiliated with Scaleway.
+
+## Disclaimer
+
+This module is provided "as is" without warranty of any kind, express or implied. The authors and contributors are not responsible for any issues, damages, or losses arising from the use of this module. No official support is provided. Use at your own risk.
+
+[apache]: https://opensource.org/licenses/Apache-2.0
+[apache-shield]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+
+[terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.10-623CE4
+[terraform-url]: https://www.terraform.io
+
+[scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.63-4f0599
+[scaleway-url]: https://registry.terraform.io/providers/scaleway/scaleway/
+
+[release-badge]: https://img.shields.io/gitlab/v/release/leminnov/terraform/modules/scaleway-vpc?include_prereleases&sort=semver
+[release-url]: https://gitlab.com/leminnov/terraform/modules/scaleway-vpc/-/releases
