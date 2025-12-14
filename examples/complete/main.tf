@@ -1,6 +1,9 @@
 module "vpc" {
   source = "../../"
 
+  organization_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  project_name    = "default"
+
   vpc_name   = "complete-example"
   vpc_region = "fr-par"
   vpc_zones  = ["fr-par-1", "fr-par-2"]
