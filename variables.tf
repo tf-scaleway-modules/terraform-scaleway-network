@@ -45,6 +45,12 @@ variable "vpc_enable_custom_routes" {
   default     = true
 }
 
+variable "vpc_enable_transitivity" {
+  description = "Allow packets from peered VPCs (VPC connectors) to transit through this VPC"
+  type        = bool
+  default     = false
+}
+
 variable "vpc_tags" {
   description = "Tags to apply to all VPC resources"
   type        = list(string)

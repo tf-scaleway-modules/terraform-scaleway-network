@@ -41,6 +41,7 @@ resource "scaleway_vpc" "this" {
 
   enable_routing                   = var.vpc_enable_routing
   enable_custom_routes_propagation = var.vpc_enable_custom_routes
+  enable_transitivity              = var.vpc_enable_transitivity
 }
 
 # ------------------------------------------------------------------------------
