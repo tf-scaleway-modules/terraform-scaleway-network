@@ -29,7 +29,7 @@ variable "vpc_zones" {
 }
 
 variable "vpc_name" {
-  description = "Name prefix for the VPC and associated resources"
+  description = "Name of the VPC, also used as the exact name of every public gateway (the same name in each zone)"
   type        = string
 }
 
@@ -107,7 +107,7 @@ variable "gateway_reserve_flexible_ip" {
 }
 
 variable "gateway_existing_flexible_ip_id" {
-  description = "Existing flexible IP ID to attach (overrides gateway_reserve_flexible_ip)"
+  description = "Existing flexible IP ID to attach; used only when gateway_reserve_flexible_ip is false, ignored (with a warning) otherwise"
   type        = string
   default     = null
 }
@@ -158,9 +158,9 @@ variable "access_control_list_default_policy" {
 }
 
 variable "access_control_list_rules" {
-  description = "ACL rules for traffic filtering (protocol, ports, source/destination, action)"
+  description = "ACL rules for traffic filtering, used only when enable_access_control_list is true (protocol: ANY, TCP, UDP or ICMP; action: accept or drop)"
   type = list(object({
-    protocol      = string # Protocol: ANY, TCP, UDP, or ICMP
+    protocol      = string
     src_port_low  = number
     src_port_high = number
     dst_port_low  = number
@@ -183,6 +183,14 @@ variable "access_control_list_rules" {
       action        = "accept"
     }
   ]
+
+  validation {
+    condition = !var.enable_access_control_list || alltrue([
+      for rule in var.access_control_list_rules :
+      contains(["ANY", "TCP", "UDP", "ICMP"], rule.protocol) && contains(["accept", "drop"], rule.action)
+    ])
+    error_message = "ACL rule protocol must be one of 'ANY', 'TCP', 'UDP' or 'ICMP' and action must be 'accept' or 'drop'."
+  }
 }
 
 # ==============================================================================

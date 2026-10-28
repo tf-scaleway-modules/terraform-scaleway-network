@@ -34,6 +34,17 @@ module "vpc" {
       destination   = "0.0.0.0/0"
       description   = "Allow HTTPS traffic from any source"
       action        = "accept"
+    },
+    {
+      protocol      = "ICMP"
+      src_port_low  = 0
+      src_port_high = 0
+      dst_port_low  = 0
+      dst_port_high = 0
+      source        = "0.0.0.0/0"
+      destination   = "0.0.0.0/0"
+      description   = "Drop ICMP traffic from any source"
+      action        = "drop"
     }
   ]
 

@@ -200,3 +200,16 @@ resource "scaleway_vpc_gateway_network" "this" {
     ipam_ip_id         = scaleway_ipam_ip.this["${each.value.network_key}-${each.value.zone}"].id
   }
 }
+
+# ------------------------------------------------------------------------------
+# Flexible IP precedence check
+# ------------------------------------------------------------------------------
+# Warns (never fails) when an existing flexible IP is given while reservation is
+# on: the reserved IPs win and the existing ID is ignored.
+
+check "gateway_flexible_ip" {
+  assert {
+    condition     = !(var.enable_gateway && var.gateway_reserve_flexible_ip && var.gateway_existing_flexible_ip_id != null)
+    error_message = "gateway_existing_flexible_ip_id is ignored because gateway_reserve_flexible_ip is true; set it to false to use the existing IP."
+  }
+}
