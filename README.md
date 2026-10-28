@@ -51,7 +51,7 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_access_control_list_default_policy"></a> [access\_control\_list\_default\_policy](#input\_access\_control\_list\_default\_policy) | Default action when no ACL rules match: accept or drop | `string` | `"accept"` | no |
 | <a name="input_access_control_list_is_ipv6"></a> [access\_control\_list\_is\_ipv6](#input\_access\_control\_list\_is\_ipv6) | Apply ACL rules to IPv6 traffic instead of IPv4 | `bool` | `false` | no |
-| <a name="input_access_control_list_rules"></a> [access\_control\_list\_rules](#input\_access\_control\_list\_rules) | ACL rules for traffic filtering (protocol, ports, source/destination, action) | <pre>list(object({<br/>    protocol      = string # Protocol: ANY, TCP, UDP, or ICMP<br/>    src_port_low  = number<br/>    src_port_high = number<br/>    dst_port_low  = number<br/>    dst_port_high = number<br/>    source        = string<br/>    destination   = string<br/>    description   = string<br/>    action        = string<br/>  }))</pre> | <pre>[<br/>  {<br/>    "action": "accept",<br/>    "description": "Allow HTTP traffic from any source",<br/>    "destination": "0.0.0.0/0",<br/>    "dst_port_high": 80,<br/>    "dst_port_low": 80,<br/>    "protocol": "TCP",<br/>    "source": "0.0.0.0/0",<br/>    "src_port_high": 0,<br/>    "src_port_low": 0<br/>  }<br/>]</pre> | no |
+| <a name="input_access_control_list_rules"></a> [access\_control\_list\_rules](#input\_access\_control\_list\_rules) | ACL rules for traffic filtering, used only when enable\_access\_control\_list is true (protocol: ANY, TCP, UDP or ICMP; action: accept or drop) | <pre>list(object({<br/>    protocol      = string<br/>    src_port_low  = number<br/>    src_port_high = number<br/>    dst_port_low  = number<br/>    dst_port_high = number<br/>    source        = string<br/>    destination   = string<br/>    description   = string<br/>    action        = string<br/>  }))</pre> | <pre>[<br/>  {<br/>    "action": "accept",<br/>    "description": "Allow HTTP traffic from any source",<br/>    "destination": "0.0.0.0/0",<br/>    "dst_port_high": 80,<br/>    "dst_port_low": 80,<br/>    "protocol": "TCP",<br/>    "source": "0.0.0.0/0",<br/>    "src_port_high": 0,<br/>    "src_port_low": 0<br/>  }<br/>]</pre> | no |
 | <a name="input_bastion_allowed_ip_ranges"></a> [bastion\_allowed\_ip\_ranges](#input\_bastion\_allowed\_ip\_ranges) | CIDR ranges allowed to access SSH bastion | `list(string)` | <pre>[<br/>  "0.0.0.0/0"<br/>]</pre> | no |
 | <a name="input_bastion_ssh_port"></a> [bastion\_ssh\_port](#input\_bastion\_ssh\_port) | SSH port for bastion access (1-65535) | `number` | `61000` | no |
 | <a name="input_enable_access_control_list"></a> [enable\_access\_control\_list](#input\_enable\_access\_control\_list) | Create VPC Access Control List for traffic filtering | `bool` | `false` | no |
@@ -59,7 +59,7 @@ No modules.
 | <a name="input_enable_gateway"></a> [enable\_gateway](#input\_enable\_gateway) | Create public gateways for internet connectivity | `bool` | `true` | no |
 | <a name="input_gateway_enable_masquerade"></a> [gateway\_enable\_masquerade](#input\_gateway\_enable\_masquerade) | Enable NAT masquerade for outbound internet access | `bool` | `true` | no |
 | <a name="input_gateway_enable_smtp"></a> [gateway\_enable\_smtp](#input\_gateway\_enable\_smtp) | Enable SMTP (port 25) for email delivery | `bool` | `false` | no |
-| <a name="input_gateway_existing_flexible_ip_id"></a> [gateway\_existing\_flexible\_ip\_id](#input\_gateway\_existing\_flexible\_ip\_id) | Existing flexible IP ID to attach (overrides gateway\_reserve\_flexible\_ip) | `string` | `null` | no |
+| <a name="input_gateway_existing_flexible_ip_id"></a> [gateway\_existing\_flexible\_ip\_id](#input\_gateway\_existing\_flexible\_ip\_id) | Existing flexible IP ID to attach; used only when gateway\_reserve\_flexible\_ip is false, ignored (with a warning) otherwise | `string` | `null` | no |
 | <a name="input_gateway_refresh_ssh_keys"></a> [gateway\_refresh\_ssh\_keys](#input\_gateway\_refresh\_ssh\_keys) | Trigger SSH key refresh on gateways (change value to trigger) | `string` | `null` | no |
 | <a name="input_gateway_reserve_flexible_ip"></a> [gateway\_reserve\_flexible\_ip](#input\_gateway\_reserve\_flexible\_ip) | Reserve new flexible IP addresses for gateways | `bool` | `true` | no |
 | <a name="input_gateway_type"></a> [gateway\_type](#input\_gateway\_type) | Gateway instance type: VPC-GW-S (small) or VPC-GW-M (medium) | `string` | `"VPC-GW-S"` | no |
@@ -69,7 +69,7 @@ No modules.
 | <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | Enable custom route propagation between private networks | `bool` | `true` | no |
 | <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | Enable routing between private networks (cannot be disabled once enabled) | `bool` | `true` | no |
 | <a name="input_vpc_enable_transitivity"></a> [vpc\_enable\_transitivity](#input\_vpc\_enable\_transitivity) | Allow packets from peered VPCs (VPC connectors) to transit through this VPC | `bool` | `false` | no |
-| <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name prefix for the VPC and associated resources | `string` | n/a | yes |
+| <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name of the VPC, also used as the exact name of every public gateway (the same name in each zone) | `string` | n/a | yes |
 | <a name="input_vpc_region"></a> [vpc\_region](#input\_vpc\_region) | Region where VPC resources will be created (defaults to provider configuration) | `string` | `null` | no |
 | <a name="input_vpc_tags"></a> [vpc\_tags](#input\_vpc\_tags) | Tags to apply to all VPC resources | `list(string)` | `[]` | no |
 | <a name="input_vpc_zones"></a> [vpc\_zones](#input\_vpc\_zones) | Availability zones for gateway deployment (must belong to vpc\_region if both specified) | `list(string)` | `[]` | no |
@@ -118,5 +118,5 @@ This module is provided "as is" without warranty of any kind, express or implied
 [scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.86-4f0599
 [scaleway-url]: https://registry.terraform.io/providers/scaleway/scaleway/
 
-[release-badge]: https://img.shields.io/gitlab/v/release/leminnov/terraform/modules/scaleway-vpc?include_prereleases&sort=semver
-[release-url]: https://gitlab.com/leminnov/terraform/modules/scaleway-vpc/-/releases
+[release-badge]: https://img.shields.io/gitlab/v/release/leminnov/terraform/modules/scaleway-network?include_prereleases&sort=semver
+[release-url]: https://gitlab.com/leminnov/terraform/modules/scaleway-network/-/releases
