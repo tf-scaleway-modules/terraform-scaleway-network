@@ -17,15 +17,31 @@ The module SHALL create exactly one `scaleway_vpc` named `vpc_name` in the proje
 - **THEN** the VPC is planned in `fr-par` with the tag `prod`
 
 ### Requirement: Routing flags
-The module SHALL pass `vpc_enable_routing` (default `true`), `vpc_enable_custom_routes` (default `true`) and `vpc_enable_transitivity` (default `false`) to the VPC arguments `enable_routing`, `enable_custom_routes_propagation` and `enable_transitivity`.
+The module SHALL pass `vpc_enable_transitivity` (default `false`) to `enable_transitivity`. `vpc_enable_routing` and `vpc_enable_custom_routes` (bool, default `null`) are DEPRECATED (the provider always enables both); their descriptions SHALL say so and announce removal in the next major. They SHALL be passed to `enable_routing` and `enable_custom_routes_propagation` only when not null, so the default plan changes no VPC. A `check` SHALL warn, without failing the plan, when either is set.
 
 #### Scenario: Defaults
 - **WHEN** none of the three flags is set
-- **THEN** the VPC has routing and custom route propagation enabled and transitivity disabled
+- **THEN** the VPC is planned without `enable_routing` and `enable_custom_routes_propagation` in the configuration, transitivity is disabled, and a second plan after apply is empty
+
+#### Scenario: Existing VPC upgraded
+- **WHEN** a VPC created by an earlier module version (state `enable_routing = true`, `enable_custom_routes_propagation = true`) is planned without the two inputs
+- **THEN** the plan shows no change on the VPC
 
 #### Scenario: Transitivity enabled
 - **WHEN** `vpc_enable_transitivity = true`
 - **THEN** the VPC is planned with `enable_transitivity = true`
+
+#### Scenario: Deprecated routing flag set
+- **WHEN** `vpc_enable_routing = true`
+- **THEN** the argument is passed to the VPC and the plan warns that `vpc_enable_routing` is deprecated and will be removed
+
+#### Scenario: Deprecated custom routes flag set
+- **WHEN** `vpc_enable_custom_routes = true`
+- **THEN** the argument is passed to the VPC and the plan warns that `vpc_enable_custom_routes` is deprecated and will be removed
+
+#### Scenario: Deprecated flags unset
+- **WHEN** neither `vpc_enable_routing` nor `vpc_enable_custom_routes` is set
+- **THEN** the plan emits no deprecation warning
 
 ### Requirement: Zones belong to the region
 The `vpc_zones` input (list of strings, default `[]`) SHALL be rejected at plan time when a region is given and a zone does not start with `vpc_region`, or when no region is given and the zones do not all share one region prefix (the zone name without its last two characters). An empty list is always accepted. The rule is unchanged and is covered by unit tests.

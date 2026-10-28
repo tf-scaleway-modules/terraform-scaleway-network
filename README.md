@@ -14,6 +14,11 @@ A comprehensive examples available in the [`examples/`](examples/) directory:
 - **[Minimal](examples/minimal/)** - Simplest configuration for quick start
 - **[Complete](examples/complete/)** - Full-featured production setup
 
+## Upgrade notes
+
+- Remove `vpc_enable_routing` and `vpc_enable_custom_routes` from module calls: the provider always enables routing and custom route propagation and ignores them. They are deprecated (a plan warning appears when set) and will be removed in the next major version. No state migration is needed; a plain upgrade plans no change.
+- `network_private_networks` accepts an optional `enable_default_route_propagation` per network. Unset keeps the provider default; setting it updates that network in place.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -63,11 +68,11 @@ No modules.
 | <a name="input_gateway_refresh_ssh_keys"></a> [gateway\_refresh\_ssh\_keys](#input\_gateway\_refresh\_ssh\_keys) | Trigger SSH key refresh on gateways (change value to trigger) | `string` | `null` | no |
 | <a name="input_gateway_reserve_flexible_ip"></a> [gateway\_reserve\_flexible\_ip](#input\_gateway\_reserve\_flexible\_ip) | Reserve new flexible IP addresses for gateways | `bool` | `true` | no |
 | <a name="input_gateway_type"></a> [gateway\_type](#input\_gateway\_type) | Gateway instance type: VPC-GW-S (small) or VPC-GW-M (medium) | `string` | `"VPC-GW-S"` | no |
-| <a name="input_network_private_networks"></a> [network\_private\_networks](#input\_network\_private\_networks) | Private networks to create with optional names, subnets, and tags | <pre>map(object({<br/>    name        = optional(string)           # Network name (defaults to auto-generated)<br/>    ipv4_subnet = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags        = optional(list(string), []) # Network-specific tags<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "ipv4_subnet": null,<br/>    "ipv6_subnet": null,<br/>    "name": null,<br/>    "tags": []<br/>  }<br/>}</pre> | no |
+| <a name="input_network_private_networks"></a> [network\_private\_networks](#input\_network\_private\_networks) | Private networks to create with optional names, subnets, and tags | <pre>map(object({<br/>    name                             = optional(string)           # Network name (defaults to auto-generated)<br/>    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags                             = optional(list(string), []) # Network-specific tags<br/>    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "enable_default_route_propagation": null,<br/>    "ipv4_subnet": null,<br/>    "ipv6_subnet": null,<br/>    "name": null,<br/>    "tags": []<br/>  }<br/>}</pre> | no |
 | <a name="input_organization_id"></a> [organization\_id](#input\_organization\_id) | Organization ID for VPC resources | `string` | n/a | yes |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name for VPC resources | `string` | n/a | yes |
-| <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | Enable custom route propagation between private networks | `bool` | `true` | no |
-| <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | Enable routing between private networks (cannot be disabled once enabled) | `bool` | `true` | no |
+| <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | DEPRECATED: ignored by the provider, which always enables custom route propagation and cannot disable it; removed in the next major version. Leave unset | `bool` | `null` | no |
+| <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | DEPRECATED: ignored by the provider, which always enables routing and cannot disable it; removed in the next major version. Leave unset | `bool` | `null` | no |
 | <a name="input_vpc_enable_transitivity"></a> [vpc\_enable\_transitivity](#input\_vpc\_enable\_transitivity) | Allow packets from peered VPCs (VPC connectors) to transit through this VPC | `bool` | `false` | no |
 | <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name of the VPC, also used as the exact name of every public gateway (the same name in each zone) | `string` | n/a | yes |
 | <a name="input_vpc_region"></a> [vpc\_region](#input\_vpc\_region) | Region where VPC resources will be created (defaults to provider configuration) | `string` | `null` | no |

@@ -34,15 +34,15 @@ variable "vpc_name" {
 }
 
 variable "vpc_enable_routing" {
-  description = "Enable routing between private networks (cannot be disabled once enabled)"
+  description = "DEPRECATED: ignored by the provider, which always enables routing and cannot disable it; removed in the next major version. Leave unset"
   type        = bool
-  default     = true
+  default     = null
 }
 
 variable "vpc_enable_custom_routes" {
-  description = "Enable custom route propagation between private networks"
+  description = "DEPRECATED: ignored by the provider, which always enables custom route propagation and cannot disable it; removed in the next major version. Leave unset"
   type        = bool
-  default     = true
+  default     = null
 }
 
 variable "vpc_enable_transitivity" {
@@ -64,17 +64,19 @@ variable "vpc_tags" {
 variable "network_private_networks" {
   description = "Private networks to create with optional names, subnets, and tags"
   type = map(object({
-    name        = optional(string)           # Network name (defaults to auto-generated)
-    ipv4_subnet = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)
-    ipv6_subnet = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)
-    tags        = optional(list(string), []) # Network-specific tags
+    name                             = optional(string)           # Network name (defaults to auto-generated)
+    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)
+    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)
+    tags                             = optional(list(string), []) # Network-specific tags
+    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)
   }))
   default = {
     default = {
-      name        = null
-      ipv4_subnet = null
-      ipv6_subnet = null
-      tags        = []
+      name                             = null
+      ipv4_subnet                      = null
+      ipv6_subnet                      = null
+      tags                             = []
+      enable_default_route_propagation = null
     }
   }
 }

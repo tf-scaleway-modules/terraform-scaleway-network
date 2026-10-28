@@ -221,3 +221,57 @@ run "ipv6_output_without_subnet" {
     }
   }
 }
+
+run "vpc_flags_default_no_warning" {
+  command = plan
+
+  assert {
+    condition     = scaleway_vpc.this.enable_transitivity == false
+    error_message = "Defaults must plan the VPC without a deprecation warning."
+  }
+}
+
+run "vpc_routing_flag_warns" {
+  command = plan
+  variables {
+    vpc_enable_routing = true
+  }
+  expect_failures = [check.vpc_deprecated_routing_flags]
+}
+
+run "vpc_custom_routes_flag_warns" {
+  command = plan
+  variables {
+    vpc_enable_custom_routes = true
+  }
+  expect_failures = [check.vpc_deprecated_routing_flags]
+}
+
+run "network_default_route_propagation_set" {
+  command = plan
+  variables {
+    network_private_networks = {
+      web = { enable_default_route_propagation = true }
+      app = {}
+    }
+  }
+
+  assert {
+    condition     = scaleway_vpc_private_network.this["web"].enable_default_route_propagation == true
+    error_message = "web must be planned with default route propagation enabled."
+  }
+
+  assert {
+    condition     = try(var.network_private_networks["app"].enable_default_route_propagation, null) == null
+    error_message = "app must leave default route propagation unset."
+  }
+}
+
+run "network_default_route_propagation_unset" {
+  command = plan
+
+  assert {
+    condition     = try(var.network_private_networks["default"].enable_default_route_propagation, null) == null
+    error_message = "Default input must leave default route propagation unset."
+  }
+}

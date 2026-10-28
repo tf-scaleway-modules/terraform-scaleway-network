@@ -8,8 +8,6 @@ module "vpc" {
   vpc_region = "fr-par"
   vpc_zones  = ["fr-par-1", "fr-par-2"]
 
-  vpc_enable_routing         = true
-  vpc_enable_custom_routes   = true
   enable_gateway             = true
   enable_access_control_list = true
   access_control_list_rules = [
@@ -59,6 +57,8 @@ module "vpc" {
       ipv4_subnet = "10.0.2.0/24"
       ipv6_subnet = "2001:db8::/64"
       tags        = ["app", "internal"]
+
+      enable_default_route_propagation = true
     }
   }
 
