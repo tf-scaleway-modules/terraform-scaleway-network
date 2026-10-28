@@ -28,7 +28,7 @@ output "network_ipv4_cidrs" {
 output "network_ipv6_cidrs" {
   description = "IPv6 CIDR blocks by network name"
   value = {
-    for k, v in scaleway_vpc_private_network.this : k => coalescelist(v.ipv6_subnets[*].subnet)
+    for k, v in scaleway_vpc_private_network.this : k => v.ipv6_subnets[*].subnet
   }
 }
 

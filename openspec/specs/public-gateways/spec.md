@@ -6,7 +6,7 @@ Per-zone public gateways with flexible IPs, bastion, SMTP, masquerade, IPAM IPs 
 ## Requirements
 
 ### Requirement: One gateway per zone
-When `enable_gateway` (default `true`) is true, the module SHALL create one `scaleway_vpc_public_gateway` per distinct non-empty zone of `vpc_zones`, keyed by zone, named `vpc_name`, of type `gateway_type` (default `VPC-GW-S`), tagged with `vpc_tags`. It SHALL create none when `enable_gateway` is false or `vpc_zones` is empty.
+When `enable_gateway` (default `true`) is true, the module SHALL create one `scaleway_vpc_public_gateway` per distinct non-empty zone of `vpc_zones`, keyed by zone, named exactly `vpc_name` (the same name in every zone), of type `gateway_type` (default `VPC-GW-S`), tagged with `vpc_tags`. It SHALL create none when `enable_gateway` is false or `vpc_zones` is empty.
 
 #### Scenario: Two zones
 - **WHEN** `vpc_zones = ["fr-par-1", "fr-par-2"]`
@@ -19,6 +19,10 @@ When `enable_gateway` (default `true`) is true, the module SHALL create one `sca
 #### Scenario: No zones
 - **WHEN** `vpc_zones = []`
 - **THEN** no gateway, flexible IP, IPAM IP or gateway network is planned
+
+#### Scenario: Gateway name
+- **WHEN** `vpc_name = "core"` and two zones
+- **THEN** both gateways are planned with the name `core`
 
 ### Requirement: Gateway type validation
 `gateway_type` SHALL be either `VPC-GW-S` or `VPC-GW-M`.
@@ -41,6 +45,13 @@ When `gateway_reserve_flexible_ip` (default `true`) and the gateway are enabled,
 #### Scenario: Existing IP
 - **WHEN** `gateway_reserve_flexible_ip = false` and `gateway_existing_flexible_ip_id` is set
 - **THEN** no flexible IP is reserved and the gateways use the given IP ID
+
+### Requirement: Flexible IP precedence warning
+A `check` SHALL warn, without failing the plan, when the gateway is enabled, `gateway_reserve_flexible_ip` is true and `gateway_existing_flexible_ip_id` is set.
+
+#### Scenario: Both reserve and existing IP set
+- **WHEN** `gateway_reserve_flexible_ip = true`, `gateway_existing_flexible_ip_id` is set and the gateway is enabled
+- **THEN** the reserved IPs are used and the plan warns that the existing IP ID is ignored
 
 ### Requirement: SSH bastion
 The module SHALL set `bastion_enabled` on the gateways from `enable_bastion` (default `false`), the bastion port from `bastion_ssh_port` (default `61000`) and the allowed ranges from `bastion_allowed_ip_ranges` (default `["0.0.0.0/0"]`).
