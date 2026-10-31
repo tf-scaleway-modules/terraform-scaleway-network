@@ -30,8 +30,8 @@
 # VPC Core Resource
 # ------------------------------------------------------------------------------
 # Creates the main VPC container for all private networks.
-# Routing and custom route propagation can be enabled for inter-network traffic.
-# WARNING: Routing cannot be disabled once enabled.
+# The provider enables routing and custom route propagation itself; the two
+# deprecated inputs are sent only when set (see check "vpc_deprecated_routing_flags").
 
 resource "scaleway_vpc" "this" {
   name       = var.vpc_name
@@ -93,6 +93,8 @@ resource "scaleway_vpc_private_network" "this" {
   project_id = data.scaleway_account_project.project.id
   region     = var.vpc_region
   tags       = concat(local.common_tags, each.value.tags)
+
+  enable_default_route_propagation = each.value.enable_default_route_propagation
 
   # IPv4 subnet (optional, auto-assigns /22 if not specified)
   dynamic "ipv4_subnet" {
@@ -211,5 +213,17 @@ check "gateway_flexible_ip" {
   assert {
     condition     = !(var.enable_gateway && var.gateway_reserve_flexible_ip && var.gateway_existing_flexible_ip_id != null)
     error_message = "gateway_existing_flexible_ip_id is ignored because gateway_reserve_flexible_ip is true; set it to false to use the existing IP."
+  }
+}
+
+check "vpc_deprecated_routing_flags" {
+  assert {
+    condition     = var.vpc_enable_routing == null
+    error_message = "vpc_enable_routing is deprecated: the provider always enables routing and ignores it. Remove it; it will be removed in the next major version."
+  }
+
+  assert {
+    condition     = var.vpc_enable_custom_routes == null
+    error_message = "vpc_enable_custom_routes is deprecated: the provider always enables custom route propagation and ignores it. Remove it; it will be removed in the next major version."
   }
 }
