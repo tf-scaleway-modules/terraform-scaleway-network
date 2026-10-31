@@ -5,7 +5,7 @@ output "vpc_id" {
 
 output "network_id" {
   description = "ID of the private network"
-  value       = module.vpc.network_private_network_ids["main"]
+  value       = module.vpc.private_network_ids["main"]
 }
 
 output "gateway_ip" {
@@ -15,5 +15,5 @@ output "gateway_ip" {
 
 output "network_ipv4_cidr" {
   description = "IPv4 CIDR of the network"
-  value       = module.vpc.network_ipv4_cidrs["main"]
+  value       = module.vpc.private_network_ipv4_cidrs["main"]
 }
