@@ -6,18 +6,22 @@ Private networks keyed by name with optional subnets and tags, and the network o
 ## Requirements
 
 ### Requirement: Private networks from a map
-The module SHALL create one `scaleway_vpc_private_network` per key of `network_private_networks` (map of objects with optional `name`, `ipv4_subnet`, `ipv6_subnet`, `tags`, `enable_default_route_propagation`; default: one `default` entry), attached to the VPC, in the project and `vpc_region`. Its tags SHALL be `vpc_tags` followed by the entry's `tags` (default `[]`). `enable_default_route_propagation` (default `null`) SHALL be sent only when not null, so null changes no existing network.
+The module SHALL create one `scaleway_vpc_private_network` per key of `private_networks` (map of objects with optional `name`, `ipv4_subnet`, `ipv6_subnet`, `tags`, `enable_default_route_propagation`; default: one `default` entry), attached to the VPC, in the project and `region`. The name SHALL be the entry's `name`, else `<name>-<key>`. Tags SHALL be the distinct union of `tags` and the entry's `tags`. `enable_default_route_propagation` (default `null`) is sent only when not null.
 
 #### Scenario: Default input
-- **WHEN** `network_private_networks` is not set
-- **THEN** one private network keyed `default` is planned with an auto-generated name and auto-assigned subnets
+- **WHEN** `private_networks` is not set and `name = "core"`
+- **THEN** one private network keyed `default` is planned with the name `core-default` and auto-assigned subnets
 
 #### Scenario: Two networks
-- **WHEN** `network_private_networks = { web = { name = "web-network", tags = ["web"] }, app = {} }` and `vpc_tags = ["prod"]`
-- **THEN** two networks keyed `web` and `app` are planned and `web` carries the tags `prod` and `web`
+- **WHEN** `private_networks = { web = { name = "web-network", tags = ["web"] }, app = {} }` and `tags = ["prod"]`
+- **THEN** `web` is named `web-network` with the tags `prod` and `web`, and `app` is named `<name>-app` with the tag `prod`
+
+#### Scenario: Duplicate tag
+- **WHEN** `tags = ["prod"]` and a network sets `tags = ["prod", "web"]`
+- **THEN** that network carries the tags `prod` and `web` once each
 
 #### Scenario: Empty map
-- **WHEN** `network_private_networks = {}`
+- **WHEN** `private_networks = {}`
 - **THEN** no private network is planned and the network outputs are empty maps
 
 #### Scenario: Default route propagation set
@@ -29,7 +33,7 @@ The module SHALL create one `scaleway_vpc_private_network` per key of `network_p
 - **THEN** the argument is not set on the network and an existing network shows no change
 
 ### Requirement: Optional subnets
-A network SHALL declare an IPv4 subnet only when its `ipv4_subnet` is not null, and an IPv6 subnet only when its `ipv6_subnet` is not null; otherwise Scaleway assigns the subnets.
+A network SHALL declare an IPv4 subnet only when its `ipv4_subnet` is not null, and an IPv6 subnet only when its `ipv6_subnet` is not null; otherwise Scaleway assigns the subnets. A given subnet MUST be a valid CIDR of its family.
 
 #### Scenario: Fixed IPv4 subnet
 - **WHEN** a network sets `ipv4_subnet = "10.0.1.0/24"`
@@ -43,8 +47,12 @@ A network SHALL declare an IPv4 subnet only when its `ipv4_subnet` is not null, 
 - **WHEN** both subnet fields are null
 - **THEN** no subnet block is planned and Scaleway assigns the subnets
 
+#### Scenario: Invalid CIDR
+- **WHEN** a network sets `ipv4_subnet = "10.0.1.0/33"`
+- **THEN** the plan fails with "ipv4_subnet and ipv6_subnet must be valid CIDR blocks."
+
 ### Requirement: Network outputs
-The module SHALL expose `network_private_network_ids`, `network_ipv4_cidrs` and `network_ipv6_cidrs`, each a map keyed by the `network_private_networks` key. `network_ipv4_cidrs` SHALL hold the first IPv4 subnet of the network or null. `network_ipv6_cidrs` SHALL hold the list of IPv6 subnets of the network, empty when it has none.
+The module SHALL expose `private_network_ids`, `private_network_ipv4_cidrs` and `private_network_ipv6_cidrs`, each a map keyed by the `private_networks` key. `private_network_ipv4_cidrs` SHALL hold the first IPv4 subnet of the network or null. `private_network_ipv6_cidrs` SHALL hold the list of IPv6 subnets of the network, empty when it has none.
 
 #### Scenario: Outputs keyed by network
 - **WHEN** networks `web` and `app` exist
@@ -52,4 +60,4 @@ The module SHALL expose `network_private_network_ids`, `network_ipv4_cidrs` and 
 
 #### Scenario: Network without IPv6 subnet
 - **WHEN** a network has no IPv6 subnet
-- **THEN** its entry in `network_ipv6_cidrs` is an empty list and the plan does not fail
+- **THEN** its entry in `private_network_ipv6_cidrs` is an empty list and the plan does not fail

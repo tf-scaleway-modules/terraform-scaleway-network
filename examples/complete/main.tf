@@ -1,52 +1,65 @@
+variable "existing_flexible_ip_ids" {
+  description = "Existing flexible IP IDs by zone; zones not listed get a reserved IP"
+  type        = map(string)
+  default     = {}
+}
+
 module "vpc" {
   source = "../../"
 
-  organization_id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  project_name    = "default"
+  # project_id = "00000000-0000-0000-0000-000000000000" # defaults to the provider project
+  name   = "complete-example"
+  region = "fr-par"
+  zones  = ["fr-par-1", "fr-par-2"]
+  tags   = ["example", "terraform", "complete"]
 
-  vpc_name   = "complete-example"
-  vpc_region = "fr-par"
-  vpc_zones  = ["fr-par-1", "fr-par-2"]
-
-  enable_gateway             = true
-  enable_access_control_list = true
-  access_control_list_rules = [
-    {
-      protocol      = "TCP"
-      src_port_low  = 0
-      src_port_high = 0
-      dst_port_low  = 80
-      dst_port_high = 80
-      source        = "0.0.0.0/0"
-      destination   = "0.0.0.0/0"
-      description   = "Allow HTTP traffic from any source"
-      action        = "accept"
-    },
-    {
-      protocol      = "TCP"
-      src_port_low  = 0
-      src_port_high = 0
-      dst_port_low  = 443
-      dst_port_high = 443
-      source        = "0.0.0.0/0"
-      destination   = "0.0.0.0/0"
-      description   = "Allow HTTPS traffic from any source"
-      action        = "accept"
-    },
-    {
-      protocol      = "ICMP"
-      src_port_low  = 0
-      src_port_high = 0
-      dst_port_low  = 0
-      dst_port_high = 0
-      source        = "0.0.0.0/0"
-      destination   = "0.0.0.0/0"
-      description   = "Drop ICMP traffic from any source"
-      action        = "drop"
+  access_control_list = {
+    ipv4 = {
+      rules = [
+        {
+          protocol      = "TCP"
+          dst_port_low  = 80
+          dst_port_high = 80
+          source        = "0.0.0.0/0"
+          destination   = "0.0.0.0/0"
+          description   = "Allow HTTP traffic from any source"
+          action        = "accept"
+        },
+        {
+          protocol      = "TCP"
+          dst_port_low  = 443
+          dst_port_high = 443
+          source        = "0.0.0.0/0"
+          destination   = "0.0.0.0/0"
+          description   = "Allow HTTPS traffic from any source"
+          action        = "accept"
+        },
+        {
+          protocol    = "ICMP"
+          source      = "0.0.0.0/0"
+          destination = "0.0.0.0/0"
+          description = "Drop ICMP traffic from any source"
+          action      = "drop"
+        }
+      ]
     }
-  ]
+    ipv6 = {
+      default_policy = "drop"
+      rules = [
+        {
+          protocol      = "TCP"
+          dst_port_low  = 443
+          dst_port_high = 443
+          source        = "::/0"
+          destination   = "::/0"
+          description   = "Allow HTTPS over IPv6"
+          action        = "accept"
+        }
+      ]
+    }
+  }
 
-  network_private_networks = {
+  private_networks = {
     web = {
       name        = "web-network"
       ipv4_subnet = "10.0.1.0/24"
@@ -62,11 +75,27 @@ module "vpc" {
     }
   }
 
-  enable_bastion            = true
-  bastion_ssh_port          = 2222
-  bastion_allowed_ip_ranges = ["0.0.0.0/0"]
-  gateway_enable_masquerade = true
-  gateway_enable_smtp       = false
+  routes = {
+    appliance = {
+      destination             = "192.168.0.0/16"
+      description             = "Corporate ranges through the app network"
+      nexthop_private_network = "app"
+    }
+  }
 
-  vpc_tags = ["example", "terraform", "complete"]
+  gateway = {
+    flexible_ip_ids = var.existing_flexible_ip_ids
+    bastion = {
+      port              = 2222
+      allowed_ip_ranges = ["203.0.113.0/24"]
+    }
+    pat_rules = {
+      ssh = {
+        zone         = "fr-par-1"
+        public_port  = 2223
+        private_ip   = "10.0.1.10"
+        private_port = 22
+      }
+    }
+  }
 }

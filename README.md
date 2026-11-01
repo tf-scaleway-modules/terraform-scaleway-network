@@ -14,10 +14,64 @@ A comprehensive examples available in the [`examples/`](examples/) directory:
 - **[Minimal](examples/minimal/)** - Simplest configuration for quick start
 - **[Complete](examples/complete/)** - Full-featured production setup
 
-## Upgrade notes
+## Upgrading from v1 to v2
 
-- Remove `vpc_enable_routing` and `vpc_enable_custom_routes` from module calls: the provider always enables routing and custom route propagation and ignores them. They are deprecated (a plan warning appears when set) and will be removed in the next major version. No state migration is needed; a plain upgrade plans no change.
-- `network_private_networks` accepts an optional `enable_default_route_propagation` per network. Unset keeps the provider default; setting it updates that network in place.
+v2.0.0 requires the Scaleway provider `~> 2.89` and replaces the 24 flat inputs by 10 (`project_id`, `region`, `zones`, `name`, `tags`, `enable_transitivity`, `private_networks`, `gateway`, `access_control_list`, `routes`); only `name` is required. No resource is replaced for an unchanged setup. The plan shows only the in-place renames below and the ACL `moved`.
+
+### Inputs
+
+| v1 | v2 |
+|----|----|
+| `organization_id`, `project_name` | removed; pass the project UUID as `project_id` (omit it for the provider's default project) |
+| `vpc_name` | `name` (gateways are now named `<name>-<zone>`) |
+| `vpc_region`, `vpc_zones` | `region`, `zones` |
+| `vpc_tags` | `tags` (also applied to routes; per-network tags are merged without duplicates) |
+| `vpc_enable_transitivity` | `enable_transitivity` |
+| `vpc_enable_routing`, `vpc_enable_custom_routes` | removed; the provider always enables both, delete them |
+| `network_private_networks` | `private_networks` (same shape) |
+| `enable_gateway = false` | `gateway = null` |
+| `gateway_type`, `gateway_enable_masquerade`, `gateway_enable_smtp`, `gateway_refresh_ssh_keys` | `gateway.type` (now also `VPC-GW-L`, `VPC-GW-XL`), `gateway.enable_masquerade`, `gateway.enable_smtp`, `gateway.refresh_ssh_keys` |
+| `gateway_reserve_flexible_ip = false` + `gateway_existing_flexible_ip_id = X` | `gateway = { flexible_ip_ids = { "<zone>" = X } }`; zones not listed get a reserved IP |
+| `enable_bastion = true`, `bastion_ssh_port`, `bastion_allowed_ip_ranges` | `gateway.bastion = { port, allowed_ip_ranges }`; `bastion = null` (default) replaces `enable_bastion = false` |
+| `enable_access_control_list`, `access_control_list_is_ipv6`, `access_control_list_default_policy`, `access_control_list_rules` | `access_control_list = { ipv4 = { default_policy, rules }, ipv6 = { ... } }`; `null` (default) replaces `enable_access_control_list = false` |
+
+### Outputs
+
+| v1 | v2 |
+|----|----|
+| `network_private_network_ids` | `private_network_ids` |
+| `network_ipv4_cidrs` | `private_network_ipv4_cidrs` |
+| `network_ipv6_cidrs` | `private_network_ipv6_cidrs` |
+| `access_control_list_id` | `access_control_list_ids`, a map by family: read `["ipv4"]` for the former value |
+
+New: `route_ids`, `pat_rule_ids`. New inputs: `routes` (custom VPC routes) and `gateway.pat_rules` (port forwarding).
+
+### Behaviour changes
+
+- **Gateway names** change from `<name>` to `<name>-<zone>`: an in-place update. The name is derived from `name`, so accept the rename.
+- **Unnamed private networks** (no `name`) are renamed from the provider-generated name to `<name>-<key>`: an in-place update. Set `name` on the network to keep the old name.
+- **Bastion**: `allowed_ip_ranges` has no `0.0.0.0/0` default any more and is required whenever `gateway.bastion` is set. List the CIDRs that may reach the bastion.
+- **ACL**: the default HTTP rule is gone (`rules` defaults to `[]`) and rule ports default to `0` (any port). Add the rule explicitly if you relied on it. `default_policy` still defaults to `accept`.
+- **Bastion off**: the module no longer sends `bastion_port` and `allowed_ip_ranges` when the bastion is disabled. If the first plan shows a diff on these two arguments, apply it: the bastion stays disabled.
+
+### Access control list state
+
+The module moves `scaleway_vpc_acl.this[0]` to `scaleway_vpc_acl.this["ipv4"]` with a `moved` block, so IPv4 ACLs need nothing more. A `moved` block cannot know that the former ACL was IPv6 (`access_control_list_is_ipv6 = true`). If your ACL was IPv6, do one of the following before the first apply; otherwise the plan destroys `this["ipv4"]` and creates `this["ipv6"]`, a replacement that leaves the IPv6 filtering unset in between:
+
+1. Add a `moved` block to the root module that calls this module (it chains after the module's own `moved`; replace `network` with your module name), then plan and apply:
+
+   ```hcl
+   moved {
+     from = module.network.scaleway_vpc_acl.this["ipv4"]
+     to   = module.network.scaleway_vpc_acl.this["ipv6"]
+   }
+   ```
+
+   Remove it once applied.
+
+2. Or run once, before the upgrade apply: `tofu state mv 'module.network.scaleway_vpc_acl.this[0]' 'module.network.scaleway_vpc_acl.this["ipv6"]'`.
+
+Configure the family you used: `access_control_list = { ipv6 = { ... } }`.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -25,13 +79,13 @@ A comprehensive examples available in the [`examples/`](examples/) directory:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.10.7 |
-| <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.86 |
+| <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.89 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.86 |
+| <a name="provider_scaleway"></a> [scaleway](#provider\_scaleway) | ~> 2.89 |
 
 ## Modules
 
@@ -48,51 +102,40 @@ No modules.
 | [scaleway_vpc_private_network.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_private_network) | resource |
 | [scaleway_vpc_public_gateway.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway) | resource |
 | [scaleway_vpc_public_gateway_ip.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway_ip) | resource |
-| [scaleway_account_project.project](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/data-sources/account_project) | data source |
+| [scaleway_vpc_public_gateway_pat_rule.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_public_gateway_pat_rule) | resource |
+| [scaleway_vpc_route.this](https://registry.terraform.io/providers/scaleway/scaleway/latest/docs/resources/vpc_route) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_access_control_list_default_policy"></a> [access\_control\_list\_default\_policy](#input\_access\_control\_list\_default\_policy) | Default action when no ACL rules match: accept or drop | `string` | `"accept"` | no |
-| <a name="input_access_control_list_is_ipv6"></a> [access\_control\_list\_is\_ipv6](#input\_access\_control\_list\_is\_ipv6) | Apply ACL rules to IPv6 traffic instead of IPv4 | `bool` | `false` | no |
-| <a name="input_access_control_list_rules"></a> [access\_control\_list\_rules](#input\_access\_control\_list\_rules) | ACL rules for traffic filtering, used only when enable\_access\_control\_list is true (protocol: ANY, TCP, UDP or ICMP; action: accept or drop) | <pre>list(object({<br/>    protocol      = string<br/>    src_port_low  = number<br/>    src_port_high = number<br/>    dst_port_low  = number<br/>    dst_port_high = number<br/>    source        = string<br/>    destination   = string<br/>    description   = string<br/>    action        = string<br/>  }))</pre> | <pre>[<br/>  {<br/>    "action": "accept",<br/>    "description": "Allow HTTP traffic from any source",<br/>    "destination": "0.0.0.0/0",<br/>    "dst_port_high": 80,<br/>    "dst_port_low": 80,<br/>    "protocol": "TCP",<br/>    "source": "0.0.0.0/0",<br/>    "src_port_high": 0,<br/>    "src_port_low": 0<br/>  }<br/>]</pre> | no |
-| <a name="input_bastion_allowed_ip_ranges"></a> [bastion\_allowed\_ip\_ranges](#input\_bastion\_allowed\_ip\_ranges) | CIDR ranges allowed to access SSH bastion | `list(string)` | <pre>[<br/>  "0.0.0.0/0"<br/>]</pre> | no |
-| <a name="input_bastion_ssh_port"></a> [bastion\_ssh\_port](#input\_bastion\_ssh\_port) | SSH port for bastion access (1-65535) | `number` | `61000` | no |
-| <a name="input_enable_access_control_list"></a> [enable\_access\_control\_list](#input\_enable\_access\_control\_list) | Create VPC Access Control List for traffic filtering | `bool` | `false` | no |
-| <a name="input_enable_bastion"></a> [enable\_bastion](#input\_enable\_bastion) | Enable SSH bastion on public gateways for secure access | `bool` | `false` | no |
-| <a name="input_enable_gateway"></a> [enable\_gateway](#input\_enable\_gateway) | Create public gateways for internet connectivity | `bool` | `true` | no |
-| <a name="input_gateway_enable_masquerade"></a> [gateway\_enable\_masquerade](#input\_gateway\_enable\_masquerade) | Enable NAT masquerade for outbound internet access | `bool` | `true` | no |
-| <a name="input_gateway_enable_smtp"></a> [gateway\_enable\_smtp](#input\_gateway\_enable\_smtp) | Enable SMTP (port 25) for email delivery | `bool` | `false` | no |
-| <a name="input_gateway_existing_flexible_ip_id"></a> [gateway\_existing\_flexible\_ip\_id](#input\_gateway\_existing\_flexible\_ip\_id) | Existing flexible IP ID to attach; used only when gateway\_reserve\_flexible\_ip is false, ignored (with a warning) otherwise | `string` | `null` | no |
-| <a name="input_gateway_refresh_ssh_keys"></a> [gateway\_refresh\_ssh\_keys](#input\_gateway\_refresh\_ssh\_keys) | Trigger SSH key refresh on gateways (change value to trigger) | `string` | `null` | no |
-| <a name="input_gateway_reserve_flexible_ip"></a> [gateway\_reserve\_flexible\_ip](#input\_gateway\_reserve\_flexible\_ip) | Reserve new flexible IP addresses for gateways | `bool` | `true` | no |
-| <a name="input_gateway_type"></a> [gateway\_type](#input\_gateway\_type) | Gateway instance type: VPC-GW-S (small) or VPC-GW-M (medium) | `string` | `"VPC-GW-S"` | no |
-| <a name="input_network_private_networks"></a> [network\_private\_networks](#input\_network\_private\_networks) | Private networks to create with optional names, subnets, and tags | <pre>map(object({<br/>    name                             = optional(string)           # Network name (defaults to auto-generated)<br/>    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags                             = optional(list(string), []) # Network-specific tags<br/>    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)<br/>  }))</pre> | <pre>{<br/>  "default": {<br/>    "enable_default_route_propagation": null,<br/>    "ipv4_subnet": null,<br/>    "ipv6_subnet": null,<br/>    "name": null,<br/>    "tags": []<br/>  }<br/>}</pre> | no |
-| <a name="input_organization_id"></a> [organization\_id](#input\_organization\_id) | Organization ID for VPC resources | `string` | n/a | yes |
-| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Project name for VPC resources | `string` | n/a | yes |
-| <a name="input_vpc_enable_custom_routes"></a> [vpc\_enable\_custom\_routes](#input\_vpc\_enable\_custom\_routes) | DEPRECATED: ignored by the provider, which always enables custom route propagation and cannot disable it; removed in the next major version. Leave unset | `bool` | `null` | no |
-| <a name="input_vpc_enable_routing"></a> [vpc\_enable\_routing](#input\_vpc\_enable\_routing) | DEPRECATED: ignored by the provider, which always enables routing and cannot disable it; removed in the next major version. Leave unset | `bool` | `null` | no |
-| <a name="input_vpc_enable_transitivity"></a> [vpc\_enable\_transitivity](#input\_vpc\_enable\_transitivity) | Allow packets from peered VPCs (VPC connectors) to transit through this VPC | `bool` | `false` | no |
-| <a name="input_vpc_name"></a> [vpc\_name](#input\_vpc\_name) | Name of the VPC, also used as the exact name of every public gateway (the same name in each zone) | `string` | n/a | yes |
-| <a name="input_vpc_region"></a> [vpc\_region](#input\_vpc\_region) | Region where VPC resources will be created (defaults to provider configuration) | `string` | `null` | no |
-| <a name="input_vpc_tags"></a> [vpc\_tags](#input\_vpc\_tags) | Tags to apply to all VPC resources | `list(string)` | `[]` | no |
-| <a name="input_vpc_zones"></a> [vpc\_zones](#input\_vpc\_zones) | Availability zones for gateway deployment (must belong to vpc\_region if both specified) | `list(string)` | `[]` | no |
+| <a name="input_access_control_list"></a> [access\_control\_list](#input\_access\_control\_list) | VPC access control list, one ACL per IP family set (null disables it); each family has a default\_policy (accept or drop) and ordered rules (protocol: ANY, TCP, UDP or ICMP; action: accept or drop; ports 0-65535, 0 meaning any); CIDRs are given in network address form | <pre>object({<br/>    ipv4 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>    ipv6 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>  })</pre> | `null` | no |
+| <a name="input_enable_transitivity"></a> [enable\_transitivity](#input\_enable\_transitivity) | Allow packets from peered VPCs (VPC connectors) to transit through this VPC | `bool` | `false` | no |
+| <a name="input_gateway"></a> [gateway](#input\_gateway) | Public gateway settings, one gateway per zone of zones (null disables the gateways). type: VPC-GW-S/M/L/XL; flexible\_ip\_ids: zone to existing flexible IP ID (other zones get a reserved IP); refresh\_ssh\_keys: change the value to refresh SSH keys; bastion: SSH bastion (allowed\_ip\_ranges required); pat\_rules: port forwarding rules keyed by name | <pre>object({<br/>    type              = optional(string, "VPC-GW-S")<br/>    flexible_ip_ids   = optional(map(string), {})<br/>    enable_masquerade = optional(bool, true)<br/>    enable_smtp       = optional(bool, false)<br/>    refresh_ssh_keys  = optional(string)<br/>    bastion = optional(object({<br/>      port              = optional(number, 61000)<br/>      allowed_ip_ranges = list(string)<br/>    }))<br/>    pat_rules = optional(map(object({<br/>      zone         = string<br/>      public_port  = number<br/>      private_ip   = string<br/>      private_port = number<br/>      protocol     = optional(string, "both")<br/>    })), {})<br/>  })</pre> | `{}` | no |
+| <a name="input_name"></a> [name](#input\_name) | Name of the VPC; also the prefix of every public gateway (<name>-<zone>) and of unnamed private networks (<name>-<key>) | `string` | n/a | yes |
+| <a name="input_private_networks"></a> [private\_networks](#input\_private\_networks) | Private networks keyed by name; a network without name is named <name>-<key>; subnets are given in network address form (for example 10.0.1.0/24) | <pre>map(object({<br/>    name                             = optional(string)           # Network name (defaults to <name>-<key>)<br/>    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags                             = optional(list(string), []) # Network-specific tags, merged with tags<br/>    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)<br/>  }))</pre> | <pre>{<br/>  "default": {}<br/>}</pre> | no |
+| <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Project UUID that owns the resources (null uses the provider's default project) | `string` | `null` | no |
+| <a name="input_region"></a> [region](#input\_region) | Region where the regional resources are created (null uses the provider's region) | `string` | `null` | no |
+| <a name="input_routes"></a> [routes](#input\_routes) | Custom VPC routes keyed by name; each sets exactly one next hop: nexthop\_private\_network (a key of private\_networks), nexthop\_resource\_id or nexthop\_vpc\_connector\_id; destination is given in network address form | <pre>map(object({<br/>    destination              = string<br/>    description              = optional(string)<br/>    tags                     = optional(list(string), [])<br/>    nexthop_private_network  = optional(string)<br/>    nexthop_resource_id      = optional(string)<br/>    nexthop_vpc_connector_id = optional(string)<br/>  }))</pre> | `{}` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags applied to the VPC, private networks, gateways, gateway IPs, IPAM IPs and routes | `list(string)` | `[]` | no |
+| <a name="input_zones"></a> [zones](#input\_zones) | Availability zones that each get a public gateway (must belong to region if both are specified) | `list(string)` | `[]` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_access_control_list_id"></a> [access\_control\_list\_id](#output\_access\_control\_list\_id) | VPC Access Control List ID (null if ACL not created) |
-| <a name="output_gateway_flexible_ip_addresses"></a> [gateway\_flexible\_ip\_addresses](#output\_gateway\_flexible\_ip\_addresses) | Gateway public IP addresses by zone |
-| <a name="output_gateway_flexible_ip_ids"></a> [gateway\_flexible\_ip\_ids](#output\_gateway\_flexible\_ip\_ids) | Gateway flexible IP resource IDs by zone |
+| <a name="output_access_control_list_ids"></a> [access\_control\_list\_ids](#output\_access\_control\_list\_ids) | VPC Access Control List IDs by IP family (ipv4, ipv6); empty if no ACL is created |
+| <a name="output_gateway_flexible_ip_addresses"></a> [gateway\_flexible\_ip\_addresses](#output\_gateway\_flexible\_ip\_addresses) | Public IP addresses reserved by the module, by zone (existing IPs from gateway.flexible\_ip\_ids are not listed) |
+| <a name="output_gateway_flexible_ip_ids"></a> [gateway\_flexible\_ip\_ids](#output\_gateway\_flexible\_ip\_ids) | IDs of the flexible IPs reserved by the module, by zone (existing IPs from gateway.flexible\_ip\_ids are not listed) |
 | <a name="output_gateway_ids"></a> [gateway\_ids](#output\_gateway\_ids) | Public gateway IDs by zone |
 | <a name="output_gateway_network_ids"></a> [gateway\_network\_ids](#output\_gateway\_network\_ids) | Gateway network attachment IDs by network-zone pair (e.g., web-fr-par-1) |
 | <a name="output_ipam_ip_addresses"></a> [ipam\_ip\_addresses](#output\_ipam\_ip\_addresses) | IPAM IP addresses by network-zone pair |
 | <a name="output_ipam_ip_ids"></a> [ipam\_ip\_ids](#output\_ipam\_ip\_ids) | IPAM IP resource IDs by network-zone pair |
-| <a name="output_network_ipv4_cidrs"></a> [network\_ipv4\_cidrs](#output\_network\_ipv4\_cidrs) | IPv4 CIDR blocks by network name |
-| <a name="output_network_ipv6_cidrs"></a> [network\_ipv6\_cidrs](#output\_network\_ipv6\_cidrs) | IPv6 CIDR blocks by network name |
-| <a name="output_network_private_network_ids"></a> [network\_private\_network\_ids](#output\_network\_private\_network\_ids) | Private network IDs by network name |
+| <a name="output_pat_rule_ids"></a> [pat\_rule\_ids](#output\_pat\_rule\_ids) | Port forwarding rule IDs by rule key |
+| <a name="output_private_network_ids"></a> [private\_network\_ids](#output\_private\_network\_ids) | Private network IDs by network key |
+| <a name="output_private_network_ipv4_cidrs"></a> [private\_network\_ipv4\_cidrs](#output\_private\_network\_ipv4\_cidrs) | First IPv4 CIDR block by network key (null if the network has none) |
+| <a name="output_private_network_ipv6_cidrs"></a> [private\_network\_ipv6\_cidrs](#output\_private\_network\_ipv6\_cidrs) | IPv6 CIDR blocks by network key (empty list if the network has none) |
+| <a name="output_route_ids"></a> [route\_ids](#output\_route\_ids) | VPC route IDs by route key |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC resource identifier |
 <!-- END_TF_DOCS -->
 
@@ -120,7 +163,7 @@ This module is provided "as is" without warranty of any kind, express or implied
 [terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.10-623CE4
 [terraform-url]: https://www.terraform.io
 
-[scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.86-4f0599
+[scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.89-4f0599
 [scaleway-url]: https://registry.terraform.io/providers/scaleway/scaleway/
 
 [release-badge]: https://img.shields.io/gitlab/v/release/leminnov/terraform/modules/scaleway-network?include_prereleases&sort=semver

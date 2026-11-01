@@ -5,26 +5,28 @@
 # Extracting complex expressions here improves readability and maintainability.
 
 locals {
+  # Zones that get a gateway: none when the gateway is disabled
+  gateway_zones = var.gateway == null ? toset([]) : toset(var.zones)
+
+  # Zones without a caller-supplied flexible IP get a reserved one
+  reserved_ip_zones = var.gateway == null ? toset([]) : setsubtract(local.gateway_zones, toset(keys(var.gateway.flexible_ip_ids)))
+
   # Network-zone pairs for creating IPAM IPs and gateway network attachments
   # Creates a map with keys like "web-fr-par-1", "app-fr-par-2", etc.
   # For N networks × Z zones, this creates N×Z entries
-  network_zone_pairs = var.enable_gateway ? {
-    for pair in setproduct(keys(var.network_private_networks), compact(var.vpc_zones)) :
+  network_zone_pairs = {
+    for pair in setproduct(keys(var.private_networks), local.gateway_zones) :
     "${pair[0]}-${pair[1]}" => {
       network_key = pair[0]
       zone        = pair[1]
     }
-  } : {}
+  }
 
-  # Set of zones for gateway resource creation
-  # Compacts the zones list to remove empty strings
-  gateway_zones = var.enable_gateway ? toset(compact(var.vpc_zones)) : []
+  # Port forwarding rules of the gateway
+  pat_rules = var.gateway == null ? {} : var.gateway.pat_rules
 
-  # Set of zones for gateway IP reservation
-  # Only creates IPs when both gateway is enabled AND IP reservation is requested
-  gateway_ip_zones = var.enable_gateway && var.gateway_reserve_flexible_ip ? toset(compact(var.vpc_zones)) : []
-
-  # Tags to apply to all VPC resources
-  # Ensures consistent tagging across all created resources
-  common_tags = var.vpc_tags
+  # One ACL per IP family that is set
+  access_control_lists = {
+    for family, acl in var.access_control_list == null ? {} : var.access_control_list : family => acl if acl != null
+  }
 }
