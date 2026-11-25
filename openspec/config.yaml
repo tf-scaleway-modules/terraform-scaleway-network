@@ -17,7 +17,7 @@ references:
     ref: v4.1.0
   - id: terraform
     remote: https://gitlab.com/leminnov/agentic-coding/openspec/terraform.git
-    ref: v1.2.6
+    ref: v2.1.0
 
 context: |
   Quality mandate: every artifact applies the non-negotiables of AGENTS.md
@@ -33,7 +33,7 @@ context: |
   pin a git tag (?ref=vX.Y.Z). Apache-2.0. OpenSpec was first adopted here by
   the change adopt-openspec; the module had no earlier spec system.
 
-  Stack: HCL only. required_version >= 1.10.7. Providers pinned with ~> in
+  Stack: HCL only. required_version >= 1.11.0 (OpenTofu and Terraform). Providers pinned with ~> in
   versions.tf: scaleway/scaleway ~> 2.86. Every tool is pinned in mise.toml.
 
   Layout: main.tf holds every resource (named `this`, themed sections: VPC,

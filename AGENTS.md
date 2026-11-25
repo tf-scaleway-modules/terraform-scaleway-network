@@ -1,7 +1,7 @@
 # AGENTS.md — terraform-modules-scaleway-network
 
 ## Project
-OpenTofu/Terraform module: Scaleway VPC, private networks, public gateways with NAT and optional bastion, and optional access control list. Published on GitLab at leminnov/terraform/modules/scaleway-network;
+OpenTofu/Terraform module (OpenTofu >= 1.11.0 and Terraform >= 1.11.0): Scaleway VPC, private networks, public gateways with NAT and optional bastion, and optional access control list. Published on GitLab at leminnov/terraform/modules/scaleway-network;
 consumers pin a git tag. Planning uses OpenSpec (`openspec/`). Engineering
 standards live in the `quality`, `repository` and `terraform` OpenSpec stores, the single
 source of truth; this file only routes to them.
@@ -65,7 +65,7 @@ Never deviate silently: add a `# DEVIATION(<spec-id>): <reason>` comment and lis
 in your summary.
 
 ## Commands
-- Format / validate: `tofu fmt -recursive`, `tofu init -backend=false && tofu validate`, `tflint --recursive`
+- Format / validate: `tofu fmt -recursive`, `tofu init -backend=false && tofu validate`, `terraform init -backend=false && terraform validate`, `tflint --recursive`
 - Tests: `tofu test` (unit tests in `tests/main.tftest.hcl`, mock provider, no account)
 - Everything incl. README regeneration: `pre-commit run -a`; CHANGELOG at release: `mise run changelog`
 - Specs: `mise run spec-validate`; standards stores: `mise run spec-setup`
