@@ -61,13 +61,13 @@ variable "enable_transitivity" {
 # ==============================================================================
 
 variable "private_networks" {
-  description = "Private networks keyed by name; a network without name is named <name>-<key>; subnets are given in network address form (for example 10.0.1.0/24)"
+  description = "Private networks keyed by a stable reference; a network without `name` is named `<name>-<key>`. Subnets use network address form (for example `10.0.1.0/24`). See Input reference in the README for every attribute."
   type = map(object({
-    name                             = optional(string)           # Network name (defaults to <name>-<key>)
-    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)
-    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)
-    tags                             = optional(list(string), []) # Network-specific tags, merged with tags
-    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)
+    name                             = optional(string)
+    ipv4_subnet                      = optional(string)
+    ipv6_subnet                      = optional(string)
+    tags                             = optional(list(string), [])
+    enable_default_route_propagation = optional(bool)
   }))
   default = { default = {} }
 
@@ -86,7 +86,7 @@ variable "private_networks" {
 # ==============================================================================
 
 variable "gateway" {
-  description = "Public gateway settings, one gateway per zone of zones (null disables the gateways). type: VPC-GW-S/M/L/XL; flexible_ip_ids: zone to existing flexible IP ID (other zones get a reserved IP); refresh_ssh_keys: change the value to refresh SSH keys; bastion: SSH bastion (allowed_ip_ranges required); pat_rules: port forwarding rules keyed by name"
+  description = "Public gateway settings, applied to one gateway per zone in `zones`. `null` disables the gateways. See Input reference in the README for every attribute."
   type = object({
     type              = optional(string, "VPC-GW-S")
     flexible_ip_ids   = optional(map(string), {})
@@ -158,7 +158,7 @@ variable "gateway" {
 # ==============================================================================
 
 variable "access_control_list" {
-  description = "VPC access control list, one ACL per IP family set (null disables it); each family has a default_policy (accept or drop) and ordered rules (protocol: ANY, TCP, UDP or ICMP; action: accept or drop; ports 0-65535, 0 meaning any); CIDRs are given in network address form"
+  description = "VPC access control list, with one ACL per IP family set (`ipv4`, `ipv6`). `null` disables it. See Input reference in the README for every attribute."
   type = object({
     ipv4 = optional(object({
       default_policy = optional(string, "accept")

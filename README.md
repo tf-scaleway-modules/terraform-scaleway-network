@@ -14,6 +14,59 @@ A comprehensive examples available in the [`examples/`](examples/) directory:
 - **[Minimal](examples/minimal/)** - Simplest configuration for quick start
 - **[Complete](examples/complete/)** - Full-featured production setup
 
+### Input reference
+
+#### private_networks
+
+Map of private networks to create, keyed by a stable reference (the default is `{ default = {} }`, one network with every attribute defaulted). Subnets use network address form, for example `10.0.1.0/24`.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | `string` | `null` | Network name. `null` names it `<name>-<key>`. |
+| `ipv4_subnet` | `string` | `null` | IPv4 CIDR. `null` lets Scaleway auto-assign a `/22`. |
+| `ipv6_subnet` | `string` | `null` | IPv6 CIDR. `null` lets Scaleway auto-assign a `/64`. |
+| `tags` | `list(string)` | `[]` | Network-specific tags, merged with the module `tags`. |
+| `enable_default_route_propagation` | `bool` | `null` | Default route propagation. `null` keeps the provider default. |
+
+#### gateway
+
+Public gateway settings, applied to one gateway per zone in `zones`. The default is `{}` (one `VPC-GW-S` gateway per zone); `null` disables the gateways.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `type` | `string` | `"VPC-GW-S"` | Gateway offer: `VPC-GW-S`, `VPC-GW-M`, `VPC-GW-L` or `VPC-GW-XL`. |
+| `flexible_ip_ids` | `map(string)` | `{}` | Existing flexible IP ID per zone. Keys must be listed in `zones`; zones not listed get a reserved IP. |
+| `enable_masquerade` | `bool` | `true` | Enable NAT masquerade. |
+| `enable_smtp` | `bool` | `false` | Enable the SMTP relay. |
+| `refresh_ssh_keys` | `string` | `null` | Change the value to refresh the SSH keys on the gateways. |
+| `bastion` | `object` | `null` | SSH bastion. `null` disables it. |
+| `bastion.port` | `number` | `61000` | Bastion SSH port, 1 to 65535. |
+| `bastion.allowed_ip_ranges` | `list(string)` | required | CIDRs allowed to reach the bastion, at least one valid CIDR. |
+| `pat_rules` | `map(object)` | `{}` | Port forwarding (PAT) rules keyed by name. A `public_port` must not be reused within a zone. |
+| `pat_rules.<name>.zone` | `string` | required | Zone of the gateway, listed in `zones`. |
+| `pat_rules.<name>.public_port` | `number` | required | Public port, 1 to 65535. |
+| `pat_rules.<name>.private_ip` | `string` | required | Private IP that receives the traffic. |
+| `pat_rules.<name>.private_port` | `number` | required | Private port, 1 to 65535. |
+| `pat_rules.<name>.protocol` | `string` | `"both"` | `both`, `tcp` or `udp`. |
+
+#### access_control_list
+
+VPC access control list, one ACL per IP family set. The default is `null`, which disables it. CIDRs use network address form.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ipv4` | `object` | `null` | IPv4 ACL. `null` creates none. |
+| `ipv6` | `object` | `null` | IPv6 ACL. `null` creates none. Takes the same attributes as `ipv4`. |
+| `ipv4.default_policy` | `string` | `"accept"` | Policy for traffic matching no rule: `accept` or `drop`. |
+| `ipv4.rules` | `list(object)` | `[]` | Ordered rules, evaluated in list order. |
+| `rules[].source` | `string` | required | Source CIDR. |
+| `rules[].destination` | `string` | required | Destination CIDR. |
+| `rules[].action` | `string` | required | `accept` or `drop`. |
+| `rules[].protocol` | `string` | `"ANY"` | `ANY`, `TCP`, `UDP` or `ICMP`. |
+| `rules[].src_port_low` / `src_port_high` | `number` | `0` | Source port range, 0 to 65535, low not above high. `0` means any port. |
+| `rules[].dst_port_low` / `dst_port_high` | `number` | `0` | Destination port range, 0 to 65535, low not above high. `0` means any port. |
+| `rules[].description` | `string` | `null` | Rule description. |
+
 ## Upgrading from v1 to v2
 
 v2.0.0 requires the Scaleway provider `~> 2.89` and replaces the 24 flat inputs by 10 (`project_id`, `region`, `zones`, `name`, `tags`, `enable_transitivity`, `private_networks`, `gateway`, `access_control_list`, `routes`); only `name` is required. No resource is replaced for an unchanged setup. The plan shows only the in-place renames below and the ACL `moved`.
@@ -109,11 +162,11 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_access_control_list"></a> [access\_control\_list](#input\_access\_control\_list) | VPC access control list, one ACL per IP family set (null disables it); each family has a default\_policy (accept or drop) and ordered rules (protocol: ANY, TCP, UDP or ICMP; action: accept or drop; ports 0-65535, 0 meaning any); CIDRs are given in network address form | <pre>object({<br/>    ipv4 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>    ipv6 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>  })</pre> | `null` | no |
+| <a name="input_access_control_list"></a> [access\_control\_list](#input\_access\_control\_list) | VPC access control list, with one ACL per IP family set (`ipv4`, `ipv6`). `null` disables it. See Input reference in the README for every attribute. | <pre>object({<br/>    ipv4 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>    ipv6 = optional(object({<br/>      default_policy = optional(string, "accept")<br/>      rules = optional(list(object({<br/>        source        = string<br/>        destination   = string<br/>        action        = string<br/>        protocol      = optional(string, "ANY")<br/>        src_port_low  = optional(number, 0)<br/>        src_port_high = optional(number, 0)<br/>        dst_port_low  = optional(number, 0)<br/>        dst_port_high = optional(number, 0)<br/>        description   = optional(string)<br/>      })), [])<br/>    }))<br/>  })</pre> | `null` | no |
 | <a name="input_enable_transitivity"></a> [enable\_transitivity](#input\_enable\_transitivity) | Allow packets from peered VPCs (VPC connectors) to transit through this VPC | `bool` | `false` | no |
-| <a name="input_gateway"></a> [gateway](#input\_gateway) | Public gateway settings, one gateway per zone of zones (null disables the gateways). type: VPC-GW-S/M/L/XL; flexible\_ip\_ids: zone to existing flexible IP ID (other zones get a reserved IP); refresh\_ssh\_keys: change the value to refresh SSH keys; bastion: SSH bastion (allowed\_ip\_ranges required); pat\_rules: port forwarding rules keyed by name | <pre>object({<br/>    type              = optional(string, "VPC-GW-S")<br/>    flexible_ip_ids   = optional(map(string), {})<br/>    enable_masquerade = optional(bool, true)<br/>    enable_smtp       = optional(bool, false)<br/>    refresh_ssh_keys  = optional(string)<br/>    bastion = optional(object({<br/>      port              = optional(number, 61000)<br/>      allowed_ip_ranges = list(string)<br/>    }))<br/>    pat_rules = optional(map(object({<br/>      zone         = string<br/>      public_port  = number<br/>      private_ip   = string<br/>      private_port = number<br/>      protocol     = optional(string, "both")<br/>    })), {})<br/>  })</pre> | `{}` | no |
+| <a name="input_gateway"></a> [gateway](#input\_gateway) | Public gateway settings, applied to one gateway per zone in `zones`. `null` disables the gateways. See Input reference in the README for every attribute. | <pre>object({<br/>    type              = optional(string, "VPC-GW-S")<br/>    flexible_ip_ids   = optional(map(string), {})<br/>    enable_masquerade = optional(bool, true)<br/>    enable_smtp       = optional(bool, false)<br/>    refresh_ssh_keys  = optional(string)<br/>    bastion = optional(object({<br/>      port              = optional(number, 61000)<br/>      allowed_ip_ranges = list(string)<br/>    }))<br/>    pat_rules = optional(map(object({<br/>      zone         = string<br/>      public_port  = number<br/>      private_ip   = string<br/>      private_port = number<br/>      protocol     = optional(string, "both")<br/>    })), {})<br/>  })</pre> | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the VPC; also the prefix of every public gateway (<name>-<zone>) and of unnamed private networks (<name>-<key>) | `string` | n/a | yes |
-| <a name="input_private_networks"></a> [private\_networks](#input\_private\_networks) | Private networks keyed by name; a network without name is named <name>-<key>; subnets are given in network address form (for example 10.0.1.0/24) | <pre>map(object({<br/>    name                             = optional(string)           # Network name (defaults to <name>-<key>)<br/>    ipv4_subnet                      = optional(string)           # IPv4 CIDR (defaults to auto-assigned /22)<br/>    ipv6_subnet                      = optional(string)           # IPv6 CIDR (defaults to auto-assigned /64)<br/>    tags                             = optional(list(string), []) # Network-specific tags, merged with tags<br/>    enable_default_route_propagation = optional(bool)             # Default route propagation (null keeps the provider default)<br/>  }))</pre> | <pre>{<br/>  "default": {}<br/>}</pre> | no |
+| <a name="input_private_networks"></a> [private\_networks](#input\_private\_networks) | Private networks keyed by a stable reference; a network without `name` is named `<name>-<key>`. Subnets use network address form (for example `10.0.1.0/24`). See Input reference in the README for every attribute. | <pre>map(object({<br/>    name                             = optional(string)<br/>    ipv4_subnet                      = optional(string)<br/>    ipv6_subnet                      = optional(string)<br/>    tags                             = optional(list(string), [])<br/>    enable_default_route_propagation = optional(bool)<br/>  }))</pre> | <pre>{<br/>  "default": {}<br/>}</pre> | no |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | Project UUID that owns the resources (null uses the provider's default project) | `string` | `null` | no |
 | <a name="input_region"></a> [region](#input\_region) | Region where the regional resources are created (null uses the provider's region) | `string` | `null` | no |
 | <a name="input_routes"></a> [routes](#input\_routes) | Custom VPC routes keyed by name; each sets exactly one next hop: nexthop\_private\_network (a key of private\_networks), nexthop\_resource\_id or nexthop\_vpc\_connector\_id; destination is given in network address form | <pre>map(object({<br/>    destination              = string<br/>    description              = optional(string)<br/>    tags                     = optional(list(string), [])<br/>    nexthop_private_network  = optional(string)<br/>    nexthop_resource_id      = optional(string)<br/>    nexthop_vpc_connector_id = optional(string)<br/>  }))</pre> | `{}` | no |
