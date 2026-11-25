@@ -7,6 +7,10 @@
 
 A Terraform module for creating and managing **Scaleway** Network infrastructure. This module provisions VPCs, private networks, public gateways with NAT, Access Control Lists for traffic filtering, and optional SSH bastion hosts. It supports multi-zone deployments for high availability and provides flexible network configuration with IPv4/IPv6 support.
 
+## Compatibility
+
+Works with OpenTofu >= 1.11.0 or Terraform >= 1.11.0. Upgrade note: consumers need OpenTofu or Terraform >= 1.11.0; the module no longer initialises on 1.10.x.
+
 ## Usage Examples
 
 A comprehensive examples available in the [`examples/`](examples/) directory:
@@ -131,7 +135,7 @@ Configure the family you used: `access_control_list = { ipv6 = { ... } }`.
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.10.7 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11.0 |
 | <a name="requirement_scaleway"></a> [scaleway](#requirement\_scaleway) | ~> 2.89 |
 
 ## Providers
@@ -213,7 +217,7 @@ This module is provided "as is" without warranty of any kind, express or implied
 [apache]: https://opensource.org/licenses/Apache-2.0
 [apache-shield]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 
-[terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.10-623CE4
+[terraform-badge]: https://img.shields.io/badge/Terraform-%3E%3D1.11-623CE4
 [terraform-url]: https://www.terraform.io
 
 [scaleway-badge]: https://img.shields.io/badge/Scaleway%20Provider-%3E%3D2.89-4f0599
