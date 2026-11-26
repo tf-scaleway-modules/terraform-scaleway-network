@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [3.0.0] - 2026-11-25
+## [1.1.0] - 2025-12-25
+- Updates Scaleway provider and Terraform versions
+
+Updates the Scaleway provider and requires a minimum Terraform version.
+
+Adds a data source to retrieve the Scaleway project. Removes the `vpc_project_id` input variable, and adds `organization_id` and `project_name` input variables, making them mandatory, to align with current Scaleway best practices.
+## [1.0.0] - 2025-12-14
 - Require OpenTofu or Terraform 1.11.0 and validate with both
 
 BREAKING: required_version is raised from >= 1.10.7 to >= 1.11.0.
