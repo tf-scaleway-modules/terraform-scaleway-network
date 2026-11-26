@@ -2,13 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2025-12-25
-- Updates Scaleway provider and Terraform versions
 
-Updates the Scaleway provider and requires a minimum Terraform version.
-
-Adds a data source to retrieve the Scaleway project. Removes the `vpc_project_id` input variable, and adds `organization_id` and `project_name` input variables, making them mandatory, to align with current Scaleway best practices.
-## [1.0.0] - 2025-12-14
+## [3.0.0] - 2026-11-25
 - Require OpenTofu or Terraform 1.11.0 and validate with both
 
 BREAKING: required_version is raised from >= 1.10.7 to >= 1.11.0.
@@ -18,6 +13,7 @@ Pin opentofu 1.13.10 and terraform 1.17.2, add the validate:terraform CI
 job, run the Terraform pre-commit hooks with tofu, bump the GitHub
 workflows to tofu 1.13.10 and adopt the terraform standards store v2.1.0.
 - Rewrite input and output descriptions as single-line prose so they render on the Terraform Registry
+## [2.0.0] - 2026-11-01
 - Collapse inputs into objects and add VPC routes, port forwarding and a dual-stack ACL
 
 BREAKING: v2.0.0; provider ~> 2.89. The 24 flat inputs become 10
@@ -42,11 +38,13 @@ private_networks, gateway, access_control_list, routes).
   VPC-GW-L/XL; the ACL is now placed in region.
 
 See "Upgrading from v1 to v2" in the README.
+## [1.3.0] - 2026-10-31
 - Deprecate VPC routing flags ignored by the provider and add private network default route propagation
 
 Upgrade note: remove vpc_enable_routing and vpc_enable_custom_routes from
 module calls; the provider ignores them and they are removed in the next
 major version. No state migration; a plain upgrade plans no change.
+## [1.2.2] - 2026-10-28
 - Fix empty IPv6 output, validate ACL rules and clarify flexible IP and gateway name docs
 
 - network_ipv6_cidrs no longer errors for a network without an IPv6 subnet.
@@ -57,6 +55,7 @@ major version. No state migration; a plain upgrade plans no change.
 No upgrade action needed.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.2.1] - 2026-10-28
 - Key the pre-commit cache on mise.toml and .pre-commit-config.yaml
 
 The cache was keyed on the branch, so a branch kept tools installed by the previous mise, which the new one no longer puts on PATH (tofu not found). Keying it on the files that define the toolchain, as in scaleway-compute and scaleway-storage, starts a fresh cache whenever the toolchain changes and shares it across branches and tags.
@@ -80,12 +79,14 @@ spec-validate and spec-setup tasks, and the validate:specs CI job runs
 openspec validate --all --strict. The module contract is unchanged.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.2.0] - 2026-10-14
 - feat: add vpc_enable_transitivity and upgrade scaleway provider to ~> 2.86
 
 - Add vpc_enable_transitivity (packets from peered VPCs can transit).
 - Bump the scaleway provider constraint to ~> 2.86 (module and examples).
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+## [1.1.0] - 2025-12-25
 - Adds organization and project to examples
 
 Adds organization ID and project name to the example configurations.
@@ -93,6 +94,12 @@ Adds organization ID and project name to the example configurations.
 Adds mise tasks for cleaning up terraform cache, lock files and state files.
 These tasks helps to remove stale files and ensure a clean environment
 for testing and development.
+- Updates Scaleway provider and Terraform versions
+
+Updates the Scaleway provider and requires a minimum Terraform version.
+
+Adds a data source to retrieve the Scaleway project. Removes the `vpc_project_id` input variable, and adds `organization_id` and `project_name` input variables, making them mandatory, to align with current Scaleway best practices.
+## [1.0.0] - 2025-12-14
 - Updates Scaleway provider and Terraform versions
 
 Updates the Scaleway provider version to `~> 2.64` and requires Terraform version `>= 1.10.7`.
@@ -108,4 +115,3 @@ Adds initial files for a Terraform module to manage Scaleway VPC infrastructure,
 - Documentation: README.md, LICENSE
 - Example configurations: minimal and complete
 - Initial commit
-
